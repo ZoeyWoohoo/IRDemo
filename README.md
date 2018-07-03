@@ -9,7 +9,7 @@
 
 ## 链接
 
-原理及分析见本项目对应博客
+原理及分析见本项目对应博客 [Android & 单片机红外开发](https://showzeng.itscoder.com/android/c/2018/07/03/Infrared-develop-with-Android-and-SCM.html)
 
 ## License
 ```
