@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">IR</string>
+    <string name="led_1">LED 1</string>
+    <string name="led_2">LED 2</string>
+    <string name="led_3">LED 3</string>
+    <string name="led_4">LED 4</string>
+    <string name="led_5">LED 5</string>
+    <string name="led_6">LED 6</string>
+</resources>

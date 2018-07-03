@@ -1,0 +1,173 @@
+C51 COMPILER V9.57.0.0   MAIN                                                              07/01/2018 12:29:51 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: W:\Software\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include "reg52.h"
+   2          
+   3          typedef unsigned char u8;
+   4          typedef unsigned int u16;
+   5          
+   6          sbit IRIN=P3^2; // 红外输出口
+   7          
+   8          u8 IrValue[6];  // 数据数组
+   9          u8 Time;        // 计时暂存
+  10          u8 DisplayData[8];  // 显示数据缓存
+  11          
+  12          
+  13          u8 code smgduan[17]={
+  14          0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,
+  15          0x7f,0x6f,0x77,0x7c,0x39,0x5e,0x79,0x71,0X76};
+  16          // 0、1、2、3、4、5、6、7、8、9、A、b、C、d、E、F、H的显示码
+  17          
+  18          // 延时函数，i=1时，大约延时10us
+  19          void delay(u16 i) {
+  20   1              while(i--);     
+  21   1      }
+  22          
+  23          
+  24          // 数码管显示函数
+  25          void DigDisplay() {
+  26   1          
+  27   1              u8 i;
+  28   1              for(i=0;i<8;i++)
+  29   1              {
+  30   2                      switch(i)        // 位选，选择点亮的数码管，
+  31   2                      {
+  32   3                  case(0):
+  33   3                      P2 = 0; break; // 显示第 1 位
+  34   3                  case(1):
+  35   3                      P2 = 1; break; // 显示第 2 位
+  36   3                  case(2):
+  37   3                      P2 = 2; break; // 显示第 3 位
+  38   3                  case(3):
+  39   3                      P2 = 3; break; // 显示第 4 位
+  40   3                  case(4):
+  41   3                      P2 = 4; break; // 显示第 5 位
+  42   3                              case(5):
+  43   3                      P2 = 5; break; // 显示第 6 位
+  44   3                              case(6):
+  45   3                                      P2 = 6; break; // 显示第 7 位
+  46   3                              case(7):
+  47   3                                      P2 = 7; break; // 显示第 8 位   
+  48   3                      }
+  49   2                      P0 = DisplayData[i]; // 发送数据
+  50   2                      delay(100); // 间隔一段时间扫描 
+  51   2                      P0 = 0x00;    // 消隐
+  52   2              }               
+  53   1      }
+  54          
+  55          
+C51 COMPILER V9.57.0.0   MAIN                                                              07/01/2018 12:29:51 PAGE 2   
+
+  56          // 初始化红外线接收
+  57          void IrInit() {
+  58   1          
+  59   1              IT0=1;//下降沿触发
+  60   1              EX0=1;//打开中断0允许
+  61   1              EA=1;   //打开总中断
+  62   1      
+  63   1              IRIN=1;//初始化端口
+  64   1      }
+  65          
+  66          
+  67          // 主函数
+  68          void main() {
+  69   1          
+  70   1              IrInit();
+  71   1              while(1) {
+  72   2              DisplayData[0] = smgduan[IrValue[0]/16];    // 用户码高位高半字节
+  73   2              DisplayData[1] = smgduan[IrValue[0]%16];    // 用户码高位低半字节
+  74   2              DisplayData[2] = smgduan[IrValue[1]/16];    // 用户码低位高半字节
+  75   2              DisplayData[3] = smgduan[IrValue[1]%16];    // 用户码低位低半字节
+  76   2                      DisplayData[5] = smgduan[IrValue[2]/16];    // 数据码高半字节
+  77   2                      DisplayData[6] = smgduan[IrValue[2]%16];    // 数据码低半字节
+  78   2                      DisplayData[7] = smgduan[16];
+  79   2                  DigDisplay();               
+  80   2              }               
+  81   1      }
+  82          
+  83          // 读取红外数值的中断函数
+  84          void ReadIr() interrupt 0 {
+  85   1          
+  86   1              u8 j,k;
+  87   1              u16 err;
+  88   1              Time=0;                                  
+  89   1              delay(700);     //7ms
+  90   1              if(IRIN==0)             //确认是否真的接收到正确的信号
+  91   1              {        
+  92   2                      
+  93   2                      err=1000;                               //1000*10us=10ms,超过说明接收到错误的信号
+  94   2                      /*当两个条件都为真是循环，如果有一个条件为假的时候跳出循环，免得程序出错的时
+  95   2                      侯，程序死在这里*/      
+  96   2                      while((IRIN==0)&&(err>0))       //等待前面9ms的低电平过去               
+  97   2                      {                       
+  98   3                              delay(1);
+  99   3                              err--;
+ 100   3                      } 
+ 101   2                      if(IRIN==1)                     //如果正确等到9ms低电平
+ 102   2                      {
+ 103   3                              err=500;
+ 104   3                              while((IRIN==1)&&(err>0))                //等待4.5ms的起始高电平过去
+ 105   3                              {
+ 106   4                                      delay(1);
+ 107   4                                      err--;
+ 108   4                              }
+ 109   3                              for(k=0;k<4;k++)                //共有4组数据
+ 110   3                              {                               
+ 111   4                                      for(j=0;j<8;j++)        //接收一组数据
+ 112   4                                      {
+ 113   5      
+ 114   5                                              err=60;         
+ 115   5                                              while((IRIN==0)&&(err>0))//等待信号前面的560us低电平过去
+ 116   5                                              {
+ 117   6                                                      delay(1);
+C51 COMPILER V9.57.0.0   MAIN                                                              07/01/2018 12:29:51 PAGE 3   
+
+ 118   6                                                      err--;
+ 119   6                                              }
+ 120   5                                              err=500;
+ 121   5                                              while((IRIN==1)&&(err>0))        //计算高电平的时间长度。
+ 122   5                                              {
+ 123   6                                                      delay(10);       //0.1ms
+ 124   6                                                      Time++;
+ 125   6                                                      err--;
+ 126   6                                                      if(Time>30)
+ 127   6                                                      {
+ 128   7                                                              return;
+ 129   7                                                      }
+ 130   6                                              }
+ 131   5                                              IrValue[k]>>=1;  //k表示第几组数据
+ 132   5                                              if(Time>=8)                     //如果高电平出现大于565us，那么是1
+ 133   5                                              {
+ 134   6                                                      IrValue[k]|=0x80;
+ 135   6                                              }
+ 136   5                                              Time=0;         //用完时间要重新赋值                                                    
+ 137   5                                      }
+ 138   4                              }
+ 139   3                      }
+ 140   2                      if(IrValue[2]!=~IrValue[3])
+ 141   2                      {
+ 142   3                              return;
+ 143   3                      }
+ 144   2              }                       
+ 145   1      }
+ 146          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    415    ----
+   CONSTANT SIZE    =     17    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     15       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

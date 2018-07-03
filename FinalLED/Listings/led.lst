@@ -1,0 +1,174 @@
+C51 COMPILER V9.57.0.0   LED                                                               07/01/2018 05:46:45 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE LED
+OBJECT MODULE PLACED IN .\Objects\led.obj
+COMPILER INVOKED BY: W:\Software\Keil_v5\C51\BIN\C51.EXE led.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listi
+                    -ngs\led.lst) OBJECT(.\Objects\led.obj)
+
+line level    source
+
+   1          #include "reg52.h"
+   2          #include <intrins.h>
+   3          
+   4          #define led P0
+   5          
+   6          typedef unsigned char u8;
+   7          typedef unsigned int u16;
+   8          
+   9          sbit IRIN=P3^2; // 红外输出口
+  10          
+  11          u8 IrValue[6];  // 数据数组
+  12          u8 Time;        // 计时暂存
+  13          
+  14          u8 m;
+  15          
+  16          // 延时函数，i=1时，大约延时10us
+  17          void delay(u16 i) {
+  18   1              while(i--);     
+  19   1      }
+  20          
+  21          // 初始化红外线接收
+  22          void IrInit() {
+  23   1          
+  24   1              IT0=1;//下降沿触发
+  25   1              EX0=1;//打开中断0允许
+  26   1              EA=1;   //打开总中断
+  27   1      
+  28   1              IRIN=1;//初始化端口
+  29   1      }
+  30          
+  31          
+  32          // 主函数
+  33          void main() {
+  34   1          
+  35   1          u8 data1;
+  36   1          u8 data2;
+  37   1          IrInit();
+  38   1          
+  39   1          
+  40   1          led = 0x00;
+  41   1          delay(50000); //大约延时450ms       
+  42   1          
+  43   1              while(1) {
+  44   2                      data1 = IrValue[2]/16;    // 数据码高半字节
+  45   2                      data2 = IrValue[2]%16;    // 数据码低半字节
+  46   2      
+  47   2              if (data1 == 0) {
+  48   3                  switch (data2) {
+  49   4                      case 1:
+  50   4                          led = 0x01;
+  51   4                          break;
+  52   4                      case 2:
+  53   4                          led = 0x02;
+  54   4                          break;
+C51 COMPILER V9.57.0.0   LED                                                               07/01/2018 05:46:45 PAGE 2   
+
+  55   4                      case 3:
+  56   4                          led = 0x04;
+  57   4                          break;
+  58   4                      case 4:
+  59   4                          led = 0x08;
+  60   4                          break;
+  61   4                      case 5:
+  62   4                          led = 0x10;
+  63   4                          break;
+  64   4                      case 6:
+  65   4                          led = 0x01;
+  66   4                          delay(50000); //大约延时450ms
+  67   4                          // 将led左移一位
+  68   4                          for(m=0; m<7; m++) {
+  69   5                              led = _crol_(led, 1);
+  70   5                              delay(5000); //大约延时450ms    
+  71   5                          }
+  72   4                          // 将led右移一位
+  73   4                          for(m=0; m<7; m++) {
+  74   5                              led = _cror_(led, 1);
+  75   5                              delay(5000); //大约延时450ms
+  76   5                          }
+  77   4                          break;
+  78   4                  }
+  79   3              }
+  80   2          }
+  81   1      }
+  82          
+  83          // 读取红外数值的中断函数
+  84          void ReadIr() interrupt 0 {
+  85   1          
+  86   1              u8 j,k;
+  87   1              u16 err;
+  88   1              Time=0;                                  
+  89   1              delay(700);     //7ms
+  90   1              if(IRIN==0)             //确认是否真的接收到正确的信号
+  91   1              {        
+  92   2                      
+  93   2                      err=1000;                               //1000*10us=10ms,超过说明接收到错误的信号
+  94   2                      /*当两个条件都为真是循环，如果有一个条件为假的时候跳出循环，免得程序出错的时
+  95   2                      侯，程序死在这里*/      
+  96   2                      while((IRIN==0)&&(err>0))       //等待前面9ms的低电平过去               
+  97   2                      {                       
+  98   3                              delay(1);
+  99   3                              err--;
+ 100   3                      } 
+ 101   2                      if(IRIN==1)                     //如果正确等到9ms低电平
+ 102   2                      {
+ 103   3                              err=500;
+ 104   3                              while((IRIN==1)&&(err>0))                //等待4.5ms的起始高电平过去
+ 105   3                              {
+ 106   4                                      delay(1);
+ 107   4                                      err--;
+ 108   4                              }
+ 109   3                              for(k=0;k<4;k++)                //共有4组数据
+ 110   3                              {                               
+ 111   4                                      for(j=0;j<8;j++)        //接收一组数据
+ 112   4                                      {
+ 113   5      
+ 114   5                                              err=60;         
+ 115   5                                              while((IRIN==0)&&(err>0))//等待信号前面的560us低电平过去
+ 116   5                                              {
+C51 COMPILER V9.57.0.0   LED                                                               07/01/2018 05:46:45 PAGE 3   
+
+ 117   6                                                      delay(1);
+ 118   6                                                      err--;
+ 119   6                                              }
+ 120   5                                              err=500;
+ 121   5                                              while((IRIN==1)&&(err>0))        //计算高电平的时间长度。
+ 122   5                                              {
+ 123   6                                                      delay(10);       //0.1ms
+ 124   6                                                      Time++;
+ 125   6                                                      err--;
+ 126   6                                                      if(Time>30)
+ 127   6                                                      {
+ 128   7                                                              return;
+ 129   7                                                      }
+ 130   6                                              }
+ 131   5                                              IrValue[k]>>=1;  //k表示第几组数据
+ 132   5                                              if(Time>=8)                     //如果高电平出现大于565us，那么是1
+ 133   5                                              {
+ 134   6                                                      IrValue[k]|=0x80;
+ 135   6                                              }
+ 136   5                                              Time=0;         //用完时间要重新赋值                                                    
+ 137   5                                      }
+ 138   4                              }
+ 139   3                      }
+ 140   2                      if(IrValue[2]!=~IrValue[3])
+ 141   2                      {
+ 142   3                              return;
+ 143   3                      }
+ 144   2              }                       
+ 145   1      }
+ 146          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    402    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      8       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

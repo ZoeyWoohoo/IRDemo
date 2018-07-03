@@ -1,0 +1,3 @@
+".\Objects\led.obj" 
+TO ".\Objects\finalLED" 
+PRINT(".\Listings\finalLED.m51") RAMSIZE(256) 
